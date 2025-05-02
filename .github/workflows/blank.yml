@@ -54,3 +54,8 @@ jobs:
       - name: Apply Terraform changes
         if: github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
+
+      - name: Destroy Terraform changes
+        id: destroy
+        run: terraform destroy -auto-approve
+
