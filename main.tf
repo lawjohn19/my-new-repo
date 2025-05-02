@@ -93,7 +93,7 @@ resource "aws_subnet" "tier_private_subnet_b" {
 }
 
 
-resource "aws_db_subnet_group" "tier_private_subnet" {
+resource "aws_db_subnet_group" "tier_private_subnet_c" {
   name       = "tier_private_subnet_group"
   subnet_ids = [aws_subnet.tier_private_subnet_b.id, aws_subnet.tier_private_subnet_a.id]
 
