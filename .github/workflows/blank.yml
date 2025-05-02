@@ -6,6 +6,9 @@ name: terraform
   pull_request:
     branches:
       - main
+
+  permissions {}
+      
   permissions:
     contents: read
     pull-requests: write
