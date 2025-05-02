@@ -1,0 +1,36 @@
+name: terraform
+'on':
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  permissions:
+    contents: write
+    pull-requests: write
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+defaults:
+  run:
+    shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.5.7
+      - name: Initialize Terraform
+        id: init
+        run: terraform init
+      - name: Validate Terraform configuration
+        id: validate
+        run: terraform validate
+      - name: Plan Terraform changes
+        id: null
+        run: terraform plan -out=tfplan
+      - name: Apply Terraform changes
+        if: github.event_name == 'push'
+        run: terraform apply -auto-approve tfplan
