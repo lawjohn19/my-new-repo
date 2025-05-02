@@ -12,8 +12,10 @@ resource "aws_db_instance" "rds_instance" {
   parameter_group_name   = "default.mysql5.7"
   skip_final_snapshot    = true
   vpc_security_group_ids = [aws_security_group.db_sg.id]
-  db_subnet_group_name   = aws_db_subnet_group.tier_private_subnet.name
-
+  db_subnet_group_name   = aws_db_subnet_group.tier_db_subnet_c.name
+  tags = {
+    Name = "RDSInstance"
+  }
 }
 
 
@@ -142,10 +144,15 @@ resource "aws_route_table_association" "tier_private_subnet_association_b" {
   route_table_id = aws_route_table.tier_private_route_table.id
 }
 
-resource "aws_route_table_association" "tier_private_subnet_association_c" {
-  subnet_id = aws_db_subnet_group.tier_private_subnet.id
-  route_table_id = aws_route_table.tier_private_route_table.id
+resource "aws_db_subnet_group" "tier_db_subnet_c" {
+  name       = "tier_db_subnet_group"
+  subnet_ids = [aws_subnet.tier_private_subnet_a.id, aws_subnet.tier_private_subnet_b.id]
+
+  tags = {
+    Name = "TierDBSubnetGroup"
+  }
 }
+
 
 resource "aws_security_group" "webserver_sg" {
   name        = "webserver_sg"
@@ -237,3 +244,14 @@ resource "aws_efs_mount_target" "db_efs_mount" {
   subnet_id       = aws_subnet.tier_private_subnet_a.id
   security_groups = [aws_security_group.db_sg.id]
 }
+ 
+
+
+
+
+
+  
+  
+
+ 
+
