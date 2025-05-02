@@ -142,7 +142,7 @@ resource "aws_route_table_association" "tier_private_subnet_association_b" {
   route_table_id = aws_route_table.tier_private_route_table.id
 }
 
-resource "aws_route_table_association" "tier_db_subnet_association" {
+resource "aws_route_table_association" "tier_private_subnet_association_c" {
   subnet_id = aws_db_subnet_group.tier_private_subnet.id
   route_table_id = aws_route_table.tier_private_route_table.id
 
