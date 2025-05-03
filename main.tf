@@ -95,15 +95,6 @@ resource "aws_subnet" "tier_private_subnet_b" {
 }
 
 
-resource "aws_db_subnet_group" "tier_private_subnet_c" {
-  name       = "tier_private_subnet_group"
-  subnet_ids = [aws_subnet.tier_private_subnet_b.id, aws_subnet.tier_private_subnet_a.id]
-
-  tags = {
-    Name = "TierPrivateSubnetGroup"
-  }
-}
-
 resource "aws_internet_gateway" "tier_igw" {
   vpc_id = aws_vpc.tier_vpc.id
   tags = {
