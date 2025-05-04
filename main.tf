@@ -8,11 +8,11 @@ resource "aws_db_instance" "rds_instance" {
   engine_version         = "5.7"
   instance_class         = "db.t3.micro"
   username               = "admin"
-  password               = "h3ll0sqlsecure"
+  password               = var.db_pass
   parameter_group_name   = "default.mysql5.7"
   skip_final_snapshot    = true
   vpc_security_group_ids = [aws_security_group.db_sg.id]
-  db_subnet_group_name   = aws_db_subnet_group.tier_db_subnet_c.name
+  db_subnet_group_name   = aws_db_subnet_group.tier_db_subnet_v2.name
   tags = {
     Name = "RDSInstance"
   }
@@ -39,6 +39,7 @@ resource "aws_instance" "webserver" {
   vpc_security_group_ids      = [aws_security_group.webserver_sg.id]
   associate_public_ip_address = true
   user_data                   = file("nginx.sh")
+  iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
   tags = {
     Name = "WebServerInstance"
   }
@@ -53,23 +54,14 @@ resource "aws_vpc" "tier_vpc" {
   }
 }
 
-resource "aws_network_interface" "webserver_nic" {
-  subnet_id       = aws_subnet.tier_public_subnet.id
-  security_groups = [aws_security_group.webserver_sg.id]
-
-
-  tags = {
-    Name = "WebServerNIC"
-  }
-}
-
 resource "aws_subnet" "tier_public_subnet" {
-  vpc_id            = aws_vpc.tier_vpc.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-east-1a"
+  vpc_id                  = aws_vpc.tier_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = true
 
   tags = {
-    Name = "TierPublicSubnet"
+    Name = "tierPublicSubnet"
   }
 
 }
@@ -80,7 +72,7 @@ resource "aws_subnet" "tier_private_subnet_a" {
   availability_zone = "us-east-1a"
 
   tags = {
-    Name = "TierPrivateSubnetA"
+    Name = "tierPrivateSubnetA"
   }
 }
 
@@ -90,7 +82,7 @@ resource "aws_subnet" "tier_private_subnet_b" {
   availability_zone = "us-east-1b"
 
   tags = {
-    name = "TierPrivateSubnetB"
+    name = "tierPrivateSubnetB"
   }
 }
 
@@ -98,14 +90,14 @@ resource "aws_subnet" "tier_private_subnet_b" {
 resource "aws_internet_gateway" "tier_igw" {
   vpc_id = aws_vpc.tier_vpc.id
   tags = {
-    Name = "TierIGW"
+    Name = "tierIGW"
   }
 }
 
 resource "aws_route_table" "tier_public_route_table" {
   vpc_id = aws_vpc.tier_vpc.id
   tags = {
-    Name = "TierPublicRouteTable"
+    Name = "tierPublicRouteTable"
   }
 }
 
@@ -118,6 +110,7 @@ resource "aws_route" "tier_public_route" {
 
 resource "aws_route_table" "tier_private_route_table" {
   vpc_id = aws_vpc.tier_vpc.id
+
 }
 
 resource "aws_route_table_association" "tier_public_subnet_association" {
@@ -135,7 +128,7 @@ resource "aws_route_table_association" "tier_private_subnet_association_b" {
   route_table_id = aws_route_table.tier_private_route_table.id
 }
 
-resource "aws_db_subnet_group" "tier_db_subnet_c" {
+resource "aws_db_subnet_group" "tier_db_subnet_v2" {
   name       = "tier_db_subnet_group"
   subnet_ids = [aws_subnet.tier_private_subnet_a.id, aws_subnet.tier_private_subnet_b.id]
 
@@ -223,19 +216,37 @@ resource "aws_security_group_rule" "webserver_to_db" {
   source_security_group_id = aws_security_group.webserver_sg.id
 }
 
-resource "aws_efs_file_system" "db_efs" {
-  performance_mode = "generalPurpose"
+resource "aws_s3_bucket" "backup_bucket" {
+  bucket = "new-tier-bucket-lj"
   tags = {
-    Name = "DBEFS"
+    Name        = "BackupBucket"
+    Environment = "Production"
   }
 }
 
-resource "aws_efs_mount_target" "db_efs_mount" {
-  file_system_id  = aws_efs_file_system.db_efs.id
-  subnet_id       = aws_subnet.tier_private_subnet_a.id
-  security_groups = [aws_security_group.db_sg.id]
+resource "aws_iam_role" "ec2_role" {
+  name = "ec2_s3_access_role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
 }
- 
+
+resource "aws_iam_role_policy_attachment" "ec2_s3_attach" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
+resource "aws_iam_instance_profile" "ec2_instance_profile" {
+  name = "ec2_s3_access_profile"
+  role = aws_iam_role.ec2_role.name
+}
 
 
 
